@@ -108,14 +108,6 @@
             padding: 24px;
         }
         
-        @media (max-width: 640px) {
-            .modal-content {
-                width: 95%;
-                padding: 20px;
-                max-height: 95vh;
-            }
-        }
-        
         /* Button styles */
         .btn {
             padding: 8px 16px;
@@ -231,101 +223,6 @@
             outline: none;
             border-color: #2563eb;
         }
-        
-        /* Mobile responsive styles */
-        @media (max-width: 768px) {
-            .card-header {
-                padding: 16px;
-            }
-            
-            .card-content {
-                padding: 16px;
-            }
-            
-            .btn {
-                padding: 10px 16px;
-                font-size: 14px;
-                min-height: 44px; /* Better touch target */
-            }
-            
-            /* Make tables scrollable on mobile */
-            .table-container {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-            
-            table {
-                min-width: 600px;
-            }
-            
-            th, td {
-                padding: 8px 12px;
-                font-size: 14px;
-                white-space: nowrap;
-            }
-            
-            /* Stack form elements on mobile */
-            .form-row {
-                flex-direction: column;
-            }
-            
-            .modal-content {
-                width: 95%;
-                padding: 16px;
-                max-height: 85vh;
-            }
-            
-            /* Better input sizing on mobile */
-            .input, select {
-                font-size: 16px; /* Prevents zoom on iOS */
-                min-height: 44px;
-            }
-            
-            /* Improve spacing on mobile */
-            h1 {
-                line-height: 1.2;
-            }
-        }
-        
-        /* Table container for horizontal scrolling */
-        .table-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        /* Print styles */
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-            
-            body {
-                font-size: 12pt;
-            }
-            
-            .card {
-                box-shadow: none;
-                border: 1px solid #ddd;
-            }
-            
-            table {
-                page-break-inside: avoid;
-            }
-        }
-        
-        /* Improve scrollbar appearance on mobile */
-        .table-container::-webkit-scrollbar {
-            height: 6px;
-        }
-        
-        .table-container::-webkit-scrollbar-thumb {
-            background: #cbd5e0;
-            border-radius: 3px;
-        }
-        
-        .table-container::-webkit-scrollbar-track {
-            background: #f7fafc;
-        }
     </style>
 </head>
 <body>
@@ -408,26 +305,23 @@
         };
         
         // Inventory Provider with Supabase integration
-        const InventoryProvider = ({ children, user }) => {
+        const InventoryProvider = ({ children }) => {
             const [inventory, setInventory] = useState([]);
             const [invoices, setInvoices] = useState([]);
             const [loading, setLoading] = useState(true);
             
-            // Load data from Supabase on mount and when user changes
+            // Load data from Supabase on mount
             useEffect(() => {
-                if (user) {
-                    loadInventory();
-                    loadInvoices();
-                }
-            }, [user]);
+                loadInventory();
+                loadInvoices();
+            }, []);
             
-            // Load inventory from Supabase (filtered by user_id)
+            // Load inventory from Supabase
             const loadInventory = async () => {
                 try {
                     const { data, error } = await supabase
                         .from('inventory')
                         .select('*')
-                        .eq('user_id', user.id)
                         .order('created_at', { ascending: false });
                     
                     if (error) throw error;
@@ -440,13 +334,12 @@
                 }
             };
             
-            // Load invoices from Supabase (filtered by user_id)
+            // Load invoices from Supabase
             const loadInvoices = async () => {
                 try {
                     const { data, error } = await supabase
                         .from('invoices')
                         .select('*')
-                        .eq('user_id', user.id)
                         .order('created_at', { ascending: false });
                     
                     if (error) throw error;
@@ -460,10 +353,9 @@
             // Add inventory item
             const addInventoryItem = async (item) => {
                 try {
-                    const itemWithUser = { ...item, user_id: user.id };
                     const { data, error } = await supabase
                         .from('inventory')
-                        .insert([itemWithUser])
+                        .insert([item])
                         .select();
                     
                     if (error) throw error;
@@ -484,7 +376,6 @@
                         .from('inventory')
                         .update(updates)
                         .eq('id', id)
-                        .eq('user_id', user.id)
                         .select();
                     
                     if (error) throw error;
@@ -503,8 +394,7 @@
                     const { error } = await supabase
                         .from('inventory')
                         .delete()
-                        .eq('id', id)
-                        .eq('user_id', user.id);
+                        .eq('id', id);
                     
                     if (error) throw error;
                     setInventory(inventory.filter(item => item.id !== id));
@@ -520,7 +410,7 @@
                 try {
                     // Generate invoice number
                     const invoiceNumber = `INV-${String(invoices.length + 1).padStart(3, '0')}`;
-                    const newInvoice = { ...invoice, invoice_number: invoiceNumber, user_id: user.id };
+                    const newInvoice = { ...invoice, invoice_number: invoiceNumber };
                     
                     const { data, error } = await supabase
                         .from('invoices')
@@ -557,7 +447,6 @@
                         .from('invoices')
                         .update(updates)
                         .eq('id', id)
-                        .eq('user_id', user.id)
                         .select();
                     
                     if (error) throw error;
@@ -620,21 +509,21 @@
             const lowStockItems = inventory.filter(item => item.quantity < 20).length;
             
             return (
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-                    <div className="mb-6 sm:mb-8">
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
-                        <p className="text-sm sm:text-base text-gray-600 mt-2">Overview of your inventory and invoices</p>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+                        <p className="text-gray-600 mt-2">Overview of your inventory and invoices</p>
                     </div>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <div className="card">
                             <div className="card-content">
                                 <div className="flex justify-between items-start mb-2">
                                     <p className="text-sm text-gray-600">Total Inventory Value</p>
                                     <Icon name="DollarSign" size={16} className="text-gray-400" />
                                 </div>
-                                <div className="text-xl sm:text-2xl font-bold text-gray-900">
-                                    ₦{totalInventoryValue.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                <div className="text-2xl font-bold text-gray-900">
+                                    ₦{totalInventoryValue.toFixed(2)}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
                                     {inventory.length} items in stock
@@ -648,8 +537,8 @@
                                     <p className="text-sm text-gray-600">Total Revenue</p>
                                     <Icon name="TrendingUp" size={16} className="text-gray-400" />
                                 </div>
-                                <div className="text-xl sm:text-2xl font-bold text-gray-900">
-                                    ₦{totalRevenue.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                <div className="text-2xl font-bold text-gray-900">
+                                    ₦{totalRevenue.toFixed(2)}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">From paid invoices</p>
                             </div>
@@ -661,7 +550,7 @@
                                     <p className="text-sm text-gray-600">Pending Invoices</p>
                                     <Icon name="FileText" size={16} className="text-gray-400" />
                                 </div>
-                                <div className="text-xl sm:text-2xl font-bold text-gray-900">
+                                <div className="text-2xl font-bold text-gray-900">
                                     {pendingInvoices}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">Awaiting payment</p>
@@ -674,7 +563,7 @@
                                     <p className="text-sm text-gray-600">Low Stock Items</p>
                                     <Icon name="Package" size={16} className="text-gray-400" />
                                 </div>
-                                <div className="text-xl sm:text-2xl font-bold text-gray-900">
+                                <div className="text-2xl font-bold text-gray-900">
                                     {lowStockItems}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">Below 20 units</p>
@@ -788,10 +677,10 @@
             };
             
             return (
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-                    <div className="mb-6 sm:mb-8">
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Inventory Management</h1>
-                        <p className="text-sm sm:text-base text-gray-600 mt-2">Manage your product inventory</p>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
+                        <p className="text-gray-600 mt-2">Manage your product inventory</p>
                     </div>
                     
                     <div className="card">
@@ -814,7 +703,7 @@
                             </div>
                         </div>
                         
-                        <div className="table-container">
+                        <div className="overflow-x-auto">
                             <table>
                                 <thead>
                                     <tr>
@@ -846,11 +735,11 @@
                                             <td>₦{item.price.toFixed(2)}</td>
                                             <td>₦{(item.quantity * item.price).toFixed(2)}</td>
                                             <td className="text-right">
-                                                <button onClick={() => handleEdit(item)} className="btn btn-ghost p-2 sm:p-2 mr-1 sm:mr-2">
-                                                    <Icon name="Pencil" size={18} />
+                                                <button onClick={() => handleEdit(item)} className="btn btn-ghost p-2 mr-2">
+                                                    <Icon name="Pencil" size={16} />
                                                 </button>
-                                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost p-2 sm:p-2">
-                                                    <Icon name="Trash2" size={18} className="text-red-500" />
+                                                <button onClick={() => handleDelete(item.id)} className="btn btn-ghost p-2">
+                                                    <Icon name="Trash2" size={16} className="text-red-500" />
                                                 </button>
                                             </td>
                                         </tr>
@@ -1046,10 +935,10 @@
             };
             
             return (
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-                    <div className="mb-6 sm:mb-8">
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Create New Invoice</h1>
-                        <p className="text-sm sm:text-base text-gray-600 mt-2">Fill in the details to create a new invoice</p>
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold text-gray-900">Create New Invoice</h1>
+                        <p className="text-gray-600 mt-2">Fill in the details to create a new invoice</p>
                     </div>
                     
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -1082,7 +971,7 @@
                                 <h2 className="text-lg font-bold">Invoice Items</h2>
                             </div>
                             <div className="card-content space-y-4">
-                                <div className="flex flex-col sm:flex-row gap-4">
+                                <div className="flex gap-4">
                                     <div className="flex-1">
                                         <label className="block text-sm font-medium mb-1">Select Item</label>
                                         <select className="input" value={selectedItemId} onChange={(e) => setSelectedItemId(e.target.value)}>
@@ -1099,16 +988,15 @@
                                         <input type="number" min="1" className="input" value={selectedQuantity} onChange={(e) => setSelectedQuantity(Number(e.target.value))} />
                                     </div>
                                     <div className="flex items-end">
-                                        <button type="button" onClick={addItem} disabled={!selectedItemId} className="btn btn-primary w-full sm:w-auto">
+                                        <button type="button" onClick={addItem} disabled={!selectedItemId} className="btn btn-primary">
                                             <Icon name="Plus" size={16} className="mr-2" />
-                                            Add Item
+                                            Add
                                         </button>
                                     </div>
                                 </div>
                                 
                                 {items.length > 0 && (
                                     <div className="border rounded-lg overflow-hidden">
-                                        <div className="overflow-x-auto">
                                         <table>
                                             <thead className="bg-gray-50">
                                                 <tr>
@@ -1143,7 +1031,6 @@
                                                 ))}
                                             </tbody>
                                         </table>
-                                        </div>
                                         
                                         <div className="bg-gray-50 px-4 py-3 space-y-2">
                                             <div className="flex justify-between text-sm">
@@ -1179,9 +1066,9 @@
                             </div>
                         </div>
                         
-                        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
-                            <button type="button" onClick={() => onNavigate('invoices')} className="btn btn-outline w-full sm:w-auto">Cancel</button>
-                            <button type="submit" className="btn btn-primary w-full sm:w-auto">Create Invoice</button>
+                        <div className="flex justify-end gap-4">
+                            <button type="button" onClick={() => onNavigate('invoices')} className="btn btn-outline">Cancel</button>
+                            <button type="submit" className="btn btn-primary">Create Invoice</button>
                         </div>
                     </form>
                 </div>
@@ -1206,10 +1093,10 @@
             });
             
             return (
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-                    <div className="mb-6 sm:mb-8">
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Invoices</h1>
-                        <p className="text-sm sm:text-base text-gray-600 mt-2">View and manage all invoices</p>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold text-gray-900">Invoices</h1>
+                        <p className="text-gray-600 mt-2">View and manage all invoices</p>
                     </div>
                     
                     <div className="card">
@@ -1225,28 +1112,28 @@
                                         className="input pl-10"
                                     />
                                 </div>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex gap-2">
                                     <button
                                         onClick={() => setStatusFilter('all')}
-                                        className={`btn text-sm ${statusFilter === 'all' ? 'btn-primary' : 'btn-outline'}`}
+                                        className={`btn ${statusFilter === 'all' ? 'btn-primary' : 'btn-outline'}`}
                                     >
                                         All
                                     </button>
                                     <button
                                         onClick={() => setStatusFilter('draft')}
-                                        className={`btn text-sm ${statusFilter === 'draft' ? 'btn-primary' : 'btn-outline'}`}
+                                        className={`btn ${statusFilter === 'draft' ? 'btn-primary' : 'btn-outline'}`}
                                     >
                                         Draft
                                     </button>
                                     <button
                                         onClick={() => setStatusFilter('sent')}
-                                        className={`btn text-sm ${statusFilter === 'sent' ? 'btn-primary' : 'btn-outline'}`}
+                                        className={`btn ${statusFilter === 'sent' ? 'btn-primary' : 'btn-outline'}`}
                                     >
                                         Sent
                                     </button>
                                     <button
                                         onClick={() => setStatusFilter('paid')}
-                                        className={`btn text-sm ${statusFilter === 'paid' ? 'btn-primary' : 'btn-outline'}`}
+                                        className={`btn ${statusFilter === 'paid' ? 'btn-primary' : 'btn-outline'}`}
                                     >
                                         Paid
                                     </button>
@@ -1254,7 +1141,7 @@
                             </div>
                         </div>
                         
-                        <div className="table-container">
+                        <div className="overflow-x-auto">
                             <table>
                                 <thead>
                                     <tr>
@@ -1290,10 +1177,9 @@
                                                 </span>
                                             </td>
                                             <td className="text-right">
-                                                <button onClick={() => onViewInvoice(invoice.id)} className="btn btn-ghost text-sm">
-                                                    <Icon name="Eye" size={16} className="mr-1 sm:mr-2" />
-                                                    <span className="hidden sm:inline">View</span>
-                                                    <span className="sm:hidden">View</span>
+                                                <button onClick={() => onViewInvoice(invoice.id)} className="btn btn-ghost">
+                                                    <Icon name="Eye" size={16} className="mr-2" />
+                                                    View
                                                 </button>
                                             </td>
                                         </tr>
@@ -1334,9 +1220,9 @@
             };
             
             return (
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-                    <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 no-print">
-                        <button onClick={() => onNavigate('invoices')} className="btn btn-outline text-sm">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div className="mb-6 flex items-center justify-between no-print">
+                        <button onClick={() => onNavigate('invoices')} className="btn btn-outline">
                             <Icon name="ArrowLeft" size={16} className="mr-2" />
                             Back to Invoices
                         </button>
@@ -1344,35 +1230,34 @@
                             <select 
                                 value={invoice.status} 
                                 onChange={(e) => handleStatusChange(e.target.value)}
-                                className="input w-28 sm:w-32 text-sm"
+                                className="input w-32"
                             >
                                 <option value="draft">Draft</option>
                                 <option value="sent">Sent</option>
                                 <option value="paid">Paid</option>
                             </select>
-                            <button onClick={handlePrint} className="btn btn-primary text-sm">
-                                <Icon name="Printer" size={16} className="mr-1 sm:mr-2" />
-                                <span className="hidden sm:inline">Print</span>
-                                <span className="sm:hidden">Print</span>
+                            <button onClick={handlePrint} className="btn btn-primary">
+                                <Icon name="Printer" size={16} className="mr-2" />
+                                Print
                             </button>
                         </div>
                     </div>
                     
-                    <div className="card p-4 sm:p-8">
-                        <div className="flex flex-col sm:flex-row justify-between items-start mb-6 sm:mb-8 pb-6 sm:pb-8 border-b gap-4">
+                    <div className="card p-8">
+                        <div className="flex justify-between items-start mb-8 pb-8 border-b">
                             <div>
-                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">INVOICE</h1>
-                                <p className="text-lg sm:text-xl text-gray-600 mt-2">{invoice.invoice_number}</p>
+                                <h1 className="text-3xl font-bold text-gray-900">INVOICE</h1>
+                                <p className="text-xl text-gray-600 mt-2">{invoice.invoice_number}</p>
                             </div>
-                            <div className="sm:text-right">
-                                <p className="text-xl sm:text-2xl font-bold text-blue-600">TechFlow Nova Int'l</p>
-                                <p className="text-sm sm:text-base text-gray-600 mt-2">33, Ojo – Igbede Rd., Chemist B/Stop</p>
-                                <p className="text-sm sm:text-base text-gray-600">Ojo, Lagos</p>
-                                <p className="text-sm sm:text-base text-gray-600">TechFlownovaint'l@outlook.com</p>
+                            <div className="text-right">
+                                <p className="text-2xl font-bold text-blue-600">TechFlow Nova Int'l</p>
+                                <p className="text-gray-600 mt-2">33, Ojo – Igbede Rd., Chemist B/Stop</p>
+                                <p className="text-gray-600">Ojo, Lagos</p>
+                                <p className="text-gray-600">TechFlownovaint'l@outlook.com</p>
                             </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
+                        <div className="grid grid-cols-2 gap-8 mb-8">
                             <div>
                                 <h3 className="text-sm font-medium text-gray-500 uppercase mb-2">Bill To</h3>
                                 <p className="font-medium text-gray-900">{invoice.customer_name}</p>
@@ -1403,42 +1288,42 @@
                             </div>
                         </div>
                         
-                        <div className="mb-6 sm:mb-8 overflow-x-auto">
-                            <table className="w-full">
+                        <div className="mb-8">
+                            <table>
                                 <thead>
                                     <tr className="border-b-2 border-gray-300">
-                                        <th className="text-left py-2 sm:py-3 px-1 sm:px-2 text-sm sm:text-base">Description</th>
-                                        <th className="text-right py-2 sm:py-3 px-1 sm:px-2 text-sm sm:text-base">Qty</th>
-                                        <th className="text-right py-2 sm:py-3 px-1 sm:px-2 text-sm sm:text-base">Price</th>
-                                        <th className="text-right py-2 sm:py-3 px-1 sm:px-2 text-sm sm:text-base">Amount</th>
+                                        <th className="text-left py-3 px-2">Description</th>
+                                        <th className="text-right py-3 px-2">Qty</th>
+                                        <th className="text-right py-3 px-2">Price</th>
+                                        <th className="text-right py-3 px-2">Amount</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {invoice.items.map((item, index) => (
                                         <tr key={index} className="border-b border-gray-200">
-                                            <td className="py-3 sm:py-4 px-1 sm:px-2 text-gray-900 text-sm sm:text-base">{item.name}</td>
-                                            <td className="py-3 sm:py-4 px-1 sm:px-2 text-right text-gray-900 text-sm sm:text-base">{item.quantity}</td>
-                                            <td className="py-3 sm:py-4 px-1 sm:px-2 text-right text-gray-900 text-sm sm:text-base">₦{item.price.toFixed(2)}</td>
-                                            <td className="py-3 sm:py-4 px-1 sm:px-2 text-right text-gray-900 text-sm sm:text-base">₦{item.total.toFixed(2)}</td>
+                                            <td className="py-4 px-2 text-gray-900">{item.name}</td>
+                                            <td className="py-4 px-2 text-right text-gray-900">{item.quantity}</td>
+                                            <td className="py-4 px-2 text-right text-gray-900">₦{item.price.toFixed(2)}</td>
+                                            <td className="py-4 px-2 text-right text-gray-900">₦{item.total.toFixed(2)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
                         
-                        <div className="flex justify-end mb-6 sm:mb-8">
-                            <div className="w-full sm:w-64">
-                                <div className="flex justify-between py-2 text-sm sm:text-base">
+                        <div className="flex justify-end mb-8">
+                            <div className="w-64">
+                                <div className="flex justify-between py-2">
                                     <span className="text-gray-600">Subtotal:</span>
                                     <span className="font-medium text-gray-900">₦{invoice.subtotal.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between py-2 text-sm sm:text-base">
+                                <div className="flex justify-between py-2">
                                     <span className="text-gray-600">Tax (0%):</span>
                                     <span className="font-medium text-gray-900">₦{invoice.tax.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between py-3 border-t-2 border-gray-300">
-                                    <span className="text-base sm:text-lg font-bold text-gray-900">Total:</span>
-                                    <span className="text-base sm:text-lg font-bold text-blue-600">₦{invoice.total.toFixed(2)}</span>
+                                    <span className="text-lg font-bold text-gray-900">Total:</span>
+                                    <span className="text-lg font-bold text-blue-600">₦{invoice.total.toFixed(2)}</span>
                                 </div>
                             </div>
                         </div>
@@ -1500,13 +1385,13 @@
             
             return (
                 <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-md">
-                        <div className="text-center mb-6 sm:mb-8">
+                    <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+                        <div className="text-center mb-8">
                             <div className="flex justify-center mb-4">
-                                <Icon name="Package" size={40} className="text-blue-600 sm:w-12 sm:h-12" />
+                                <Icon name="Package" size={48} className="text-blue-600" />
                             </div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">TechFlow Nova Int'l</h1>
-                            <p className="text-sm sm:text-base text-gray-600 mt-2">Inventory Management System</p>
+                            <h1 className="text-3xl font-bold text-gray-900">TechFlow Nova Int'l</h1>
+                            <p className="text-gray-600 mt-2">Inventory Management System</p>
                         </div>
                         
                         <form onSubmit={handleSubmit} className="space-y-6">
@@ -1569,7 +1454,6 @@
             const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
             const [user, setUser] = useState(null);
             const [authLoading, setAuthLoading] = useState(true);
-            const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
             
             useEffect(() => {
                 // Check current session
@@ -1600,7 +1484,6 @@
             const navigate = (page) => {
                 setCurrentPage(page);
                 setSelectedInvoiceId(null);
-                setMobileMenuOpen(false); // Close mobile menu when navigating
             };
             
             const viewInvoice = (invoiceId) => {
@@ -1626,128 +1509,66 @@
             }
             
             return (
-                <InventoryProvider user={user}>
+                <InventoryProvider>
                     <div className="min-h-screen bg-gray-50">
                         <nav className="bg-white border-b border-gray-200 no-print">
                             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                                 <div className="flex justify-between h-16">
-                                    <div className="flex items-center">
+                                    <div className="flex">
                                         <div className="flex-shrink-0 flex items-center">
-                                            <Icon name="Package" size={28} className="text-blue-600" />
-                                            <span className="ml-2 text-lg sm:text-xl font-semibold text-gray-900">
+                                            <Icon name="Package" size={32} className="text-blue-600" />
+                                            <span className="ml-2 text-xl font-semibold text-gray-900">
                                                 Inventory Manager
                                             </span>
                                         </div>
+                                        <div className="hidden sm:ml-8 sm:flex sm:space-x-4">
+                                            <button
+                                                onClick={() => navigate('dashboard')}
+                                                className={`inline-flex items-center px-3 py-2 rounded-md ${
+                                                    currentPage === 'dashboard'
+                                                        ? 'bg-blue-50 text-blue-700'
+                                                        : 'text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                <Icon name="Home" size={16} className="mr-2" />
+                                                Dashboard
+                                            </button>
+                                            <button
+                                                onClick={() => navigate('inventory')}
+                                                className={`inline-flex items-center px-3 py-2 rounded-md ${
+                                                    currentPage === 'inventory'
+                                                        ? 'bg-blue-50 text-blue-700'
+                                                        : 'text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                <Icon name="Package" size={16} className="mr-2" />
+                                                Inventory
+                                            </button>
+                                            <button
+                                                onClick={() => navigate('invoices')}
+                                                className={`inline-flex items-center px-3 py-2 rounded-md ${
+                                                    currentPage === 'invoices'
+                                                        ? 'bg-blue-50 text-blue-700'
+                                                        : 'text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                <Icon name="FileText" size={16} className="mr-2" />
+                                                Invoices
+                                            </button>
+                                        </div>
                                     </div>
-                                    
-                                    {/* Desktop Navigation */}
-                                    <div className="hidden md:flex items-center space-x-2">
-                                        <button
-                                            onClick={() => navigate('dashboard')}
-                                            className={`inline-flex items-center px-3 py-2 rounded-md text-sm ${
-                                                currentPage === 'dashboard'
-                                                    ? 'bg-blue-50 text-blue-700'
-                                                    : 'text-gray-700 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            <Icon name="Home" size={16} className="mr-2" />
-                                            Dashboard
-                                        </button>
-                                        <button
-                                            onClick={() => navigate('inventory')}
-                                            className={`inline-flex items-center px-3 py-2 rounded-md text-sm ${
-                                                currentPage === 'inventory'
-                                                    ? 'bg-blue-50 text-blue-700'
-                                                    : 'text-gray-700 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            <Icon name="Package" size={16} className="mr-2" />
-                                            Inventory
-                                        </button>
-                                        <button
-                                            onClick={() => navigate('invoices')}
-                                            className={`inline-flex items-center px-3 py-2 rounded-md text-sm ${
-                                                currentPage === 'invoices'
-                                                    ? 'bg-blue-50 text-blue-700'
-                                                    : 'text-gray-700 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            <Icon name="FileText" size={16} className="mr-2" />
-                                            Invoices
-                                        </button>
-                                        <button onClick={() => navigate('create-invoice')} className="btn btn-primary text-sm">
+                                    <div className="flex items-center space-x-4">
+                                        <span className="text-sm text-gray-600">{user.email}</span>
+                                        <button onClick={() => navigate('create-invoice')} className="btn btn-primary">
                                             <Icon name="Plus" size={16} className="mr-2" />
                                             Create Invoice
                                         </button>
-                                        <button onClick={handleLogout} className="btn btn-ghost text-red-600 hover:bg-red-50 text-sm">
-                                            <Icon name="LogOut" size={16} />
-                                        </button>
-                                    </div>
-                                    
-                                    {/* Mobile Menu Button */}
-                                    <div className="flex items-center md:hidden">
-                                        <button
-                                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                                            className="p-2 rounded-md text-gray-700 hover:bg-gray-100"
-                                        >
-                                            <Icon name={mobileMenuOpen ? "X" : "Menu"} size={24} />
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                {/* Mobile Menu */}
-                                {mobileMenuOpen && (
-                                    <div className="md:hidden py-4 space-y-2">
-                                        <div className="px-2 text-xs text-gray-500 mb-2">{user.email}</div>
-                                        <button
-                                            onClick={() => { navigate('dashboard'); setMobileMenuOpen(false); }}
-                                            className={`w-full flex items-center px-3 py-3 rounded-md ${
-                                                currentPage === 'dashboard'
-                                                    ? 'bg-blue-50 text-blue-700'
-                                                    : 'text-gray-700 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            <Icon name="Home" size={20} className="mr-3" />
-                                            Dashboard
-                                        </button>
-                                        <button
-                                            onClick={() => { navigate('inventory'); setMobileMenuOpen(false); }}
-                                            className={`w-full flex items-center px-3 py-3 rounded-md ${
-                                                currentPage === 'inventory'
-                                                    ? 'bg-blue-50 text-blue-700'
-                                                    : 'text-gray-700 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            <Icon name="Package" size={20} className="mr-3" />
-                                            Inventory
-                                        </button>
-                                        <button
-                                            onClick={() => { navigate('invoices'); setMobileMenuOpen(false); }}
-                                            className={`w-full flex items-center px-3 py-3 rounded-md ${
-                                                currentPage === 'invoices'
-                                                    ? 'bg-blue-50 text-blue-700'
-                                                    : 'text-gray-700 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            <Icon name="FileText" size={20} className="mr-3" />
-                                            Invoices
-                                        </button>
-                                        <button
-                                            onClick={() => { navigate('create-invoice'); setMobileMenuOpen(false); }}
-                                            className="w-full flex items-center px-3 py-3 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                                        >
-                                            <Icon name="Plus" size={20} className="mr-3" />
-                                            Create Invoice
-                                        </button>
-                                        <button
-                                            onClick={handleLogout}
-                                            className="w-full flex items-center px-3 py-3 rounded-md text-red-600 hover:bg-red-50"
-                                        >
-                                            <Icon name="LogOut" size={20} className="mr-3" />
+                                        <button onClick={handleLogout} className="btn btn-ghost text-red-600 hover:bg-red-50">
+                                            <Icon name="LogOut" size={16} className="mr-2" />
                                             Logout
                                         </button>
                                     </div>
-                                )}
+                                </div>
                             </div>
                         </nav>
                         <main>
